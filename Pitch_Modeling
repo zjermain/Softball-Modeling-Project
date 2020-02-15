@@ -1,0 +1,147 @@
+"""
+
+@author: zjermain15
+"""
+
+from numpy import sqrt, sin, cos, pi, arange, array, asarray 
+import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
+from IPython import get_ipython 
+
+
+def vdot(r,mass,D,M,alpha): #takes in velocity array, and appropraite constants 
+    g = 9.81 #m/s^2 
+    vx = r[3] 
+    vy = r[4] 
+    vz = r[5] 
+    
+    vdotx = -D*vx*sqrt(vx**2 + vy**2 + vz**2)/mass
+    vdoty = - g - D*vy*sqrt(vx**2 + vy**2 + vz**2)/mass + 0.5*M*(vx**2 + vy**2 + vz**2)*sin(alpha)/mass
+    vdotz = D*vz*sqrt(vx**2 + vy**2 + vz**2)/mass + 0.5*M*(vx**2 + vy**2 + vz**2)*cos(alpha)/mass
+    
+    rdotx = vx 
+    rdoty = vy 
+    rdotz = vz
+    
+    return array([rdotx,rdoty,rdotz,vdotx,vdoty,vdotz],float)
+
+
+#define constants and parameters and recieve inputs  
+
+v = float(input("Enter the speed of the pitch in mph: "))
+v = v*0.44704 #converts speed of pitch to m/s
+omega = float(input("Enter the spin of the ball in rotations per second: "))
+spinangle = float(input("Enter the spin direction (90 is rise, -90 is drop): "))
+theta = 2*pi/180 #initial vertical lauch angle in radians 
+phi = 89*pi/180 #initial horizontal launch angle in radians 
+alpha = (spinangle*pi/180) #Magnus angle in radians 
+
+
+A = .0073898 #cross sectional area of softball in meters squared
+rho = 1.2 #air density in kg/m^3
+mass = .188 #mass of softball in kg
+radius = .0485 #radius of softball in meters
+cd = .3 #drag coefficient for softball
+S = 2*pi*radius*omega/v #spin factor 
+
+if S >= .1: #calculates lift coefficient for given spin factor
+    cl = .09 + .6*S 
+if S < .1: 
+    cl = 1.5*S
+    
+
+D = 0.5*cd*rho*A #D coefficient for drag force 
+M = 0.5*cl*rho*A #M coefficient for magnus force 
+
+N = 1000 #number of runs for rk4
+a = 0
+b = 1
+h = (b-a)/N 
+tpoints = arange(a,b,h) #creates time points for integration
+
+vx = [] #lists for velocities in x,y,z directions
+vy = []
+vz = []
+x = [] #lists for initial positions 
+y = [] 
+z = []
+
+vxi= v*sin(phi)*cos(theta) #initial velocites in x,y,z directions
+vyi= v*sin(phi)*sin(theta) 
+vzi = v*cos(phi) 
+xi = 1 #meters
+yi = .6096 #meters
+zi = 0
+
+r = array([xi,yi,zi,vxi,vyi,vzi], float) #array for positions 
+n = 0 #variable to determine pitch break
+
+for t in tpoints: #RK4 integration
+    x.append(r[0])
+    y.append(r[1]) 
+    z.append(r[2])
+    vx.append(r[3]) 
+    vy.append(r[4]) 
+    vz.append(r[5]) 
+    k1 = h*vdot(r,mass,D,M,alpha) 
+    k2 = h*vdot(r + 0.5*k1, mass,D,M,alpha) 
+    k3 = h*vdot(r + 0.5*k2, mass,D,M,alpha) 
+    k4 = h*vdot(r + k3, mass,D,M,alpha) 
+    r += (k1 + 2*k2 + 2*k3 + k4)/6
+    n += 1
+    if r[1] < 0 or r[0] > 13.1064:
+        break
+
+xfeet = asarray(x) #converts x,y,z lists to arrays
+yfeet = asarray(y) 
+zfeet = asarray(z)
+xfeet = xfeet*3.28084 #converts meters to feet 
+yfeet = yfeet*3.28084
+zfeet = zfeet*3.28084
+
+vdisplacement = abs(yfeet[n-1] - yfeet[0]) #vertical movement of pitch 
+hdisplacement = abs(zfeet[n-1] - zfeet[0]) #horizontal movement of pitch 
+displacement = sqrt(vdisplacement**2 + hdisplacement**2) #total break of pitch 
+
+vmax = max(yfeet) 
+vmin = min(yfeet) 
+hmax = max(zfeet) 
+hmin = min(zfeet) 
+
+if abs(vmax - yfeet[n-1]) >= abs(vmin - yfeet[n-1]):
+    vbreak = yfeet[n-1] - vmax
+elif abs(vmax - yfeet[n-1]) < abs(vmin - yfeet[n-1]): 
+    vbreak = yfeet[n-1] - vmin
+
+if abs(hmax - zfeet[n-1]) >= abs(hmin - zfeet[n-1]): 
+    hbreak = zfeet[n-1] - hmax 
+elif abs(hmax - zfeet[n-1]) < abs(hmin - zfeet[n-1]): 
+    hbreak = zfeet[n-1] - hmin
+
+tbreak = sqrt(hbreak**2 + vbreak**2)
+
+
+print("The vertical displacement is: ", vdisplacement*12, "inches") 
+print("\n")
+print("The horizontal displacement is: ", hdisplacement*12, "inches") 
+print("\n")
+print("The total displacement is: ", displacement*12, "inches")
+print("\n")
+
+print("The vertical break is: ",vbreak*12, "inches")
+print("\n")
+print("The horizontal break is: ",hbreak*12,"inches") 
+print("\n")
+print("The total break is: ",tbreak*12,"inches")
+
+ax = plt.axes(projection = '3d') 
+
+ax.set_xlim3d(0,46)
+ax.set_ylim3d(-4,4)
+ax.set_zlim3d(0,6)
+ax.set_xlabel('Pitcher to Batter', fontsize = 18) 
+ax.set_ylabel('Horizontal Movement', fontsize = 18) 
+ax.set_zlabel('Veritcal Movement', fontsize = 18) 
+
+ax.plot3D(xfeet,zfeet,yfeet)
+plt.show()

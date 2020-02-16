@@ -1,5 +1,3 @@
-"""
-
 @author: zjermain15
 """
 
@@ -27,12 +25,12 @@ def vdot(r,mass,D,M,alpha): #takes in velocity array, and appropraite constants
 
 
 #define constants and parameters and recieve inputs  
-
 v = float(input("Enter the speed of the pitch in mph: "))
 v = v*0.44704 #converts speed of pitch to m/s
 omega = float(input("Enter the spin of the ball in rotations per second: "))
 spinangle = float(input("Enter the spin direction (90 is rise, -90 is drop): "))
-theta = 2*pi/180 #initial vertical lauch angle in radians 
+vertangle = float(input("Enter the vertical trajectory angle at release: "))
+theta = vertangle*pi/180 #initial vertical lauch angle in radians 
 phi = 89*pi/180 #initial horizontal launch angle in radians 
 alpha = (spinangle*pi/180) #Magnus angle in radians 
 
